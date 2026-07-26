@@ -30,7 +30,7 @@ Logo.TextXAlignment = Enum.TextXAlignment.Left
 Logo.BorderSizePixel = 0
 Logo.Parent = MainFrame
 
--- Кнопка Свернуть/Развернуть
+-- Кнопка Свернуть/Развернуть в заголовке
 local CollapseButton = Instance.new("TextButton")
 CollapseButton.Size = UDim2.new(0, 30, 0, 35)
 CollapseButton.Position = UDim2.new(1, -35, 0, 0)
@@ -82,9 +82,11 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- Переменные прозрачности (1 = выключено, 0 = полная видимость)
 local playerTrans = 1 
 local coinTrans = 1
 
+-- Регулятор видимости игроков
 local BtnPlayers = Instance.new("TextButton")
 BtnPlayers.Size = UDim2.new(0, 310, 0, 35)
 BtnPlayers.Position = UDim2.new(0, 20, 0, 50)
@@ -111,6 +113,7 @@ BtnPlayers.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Регулятор видимости монет и оружия
 local BtnItems = Instance.new("TextButton")
 BtnItems.Size = UDim2.new(0, 310, 0, 35)
 BtnItems.Position = UDim2.new(0, 20, 0, 95)
@@ -137,6 +140,7 @@ BtnItems.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Кнопка скорости
 local speedActive = false
 local BtnSpeed = Instance.new("TextButton")
 BtnSpeed.Size = UDim2.new(0, 310, 0, 35)
@@ -163,9 +167,11 @@ end)
 
 localPlayer.CharacterAdded:Connect(function() task.wait(1) updateSpeed() end)
 
+-- Стабильный цикл обновлений ESP эффектов сквозь стены
 task.spawn(function()
     while true do
         task.wait(0.3)
+        
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= localPlayer and p.Character then
                 local hl = p.Character:FindFirstChild("ZHL")
@@ -189,6 +195,7 @@ task.spawn(function()
                 end
             end
         end
+        
         if coinTrans < 1 then
             local gd = Workspace:FindFirstChild("GunDrop")
             if gd then
