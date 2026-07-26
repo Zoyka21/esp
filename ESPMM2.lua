@@ -388,3 +388,129 @@ task.spawn(function()
         end
     end
 end)
+-- ==================== КУСОК 6 (ЗАПУСТИТЬ СЛЕДУЮЩИМ) ====================
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+-- Добавляем новые состояния в общую таблицу
+if ZH_States then
+    ZH_States.farmActive = false -- Перезапишем старый автофарм новым методом
+    ZH_States.invisibilityActive = false
+    ZH_States.hideWeaponActive = false
+end
+
+-- 1. Создаем кнопку для нового автофарма (взамен старого, кнопка перезапишет логику)
+local BtnNewFarm = createButton("Плавный Авто-Фарм: ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnNewFarm.MouseButton1Click:Connect(function()
+    ZH_States.farmActive = not ZH_States.farmActive
+    BtnNewFarm.Text = ZH_States.farmActive and "Плавный Авто-Фарм: ВКЛ" or "Плавный Авто-Фарм: ВЫКЛ"
+    BtnNewFarm.BackgroundColor3 = ZH_States.farmActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+-- 2. Создаем кнопку Невидимости (для твоего скина)
+local BtnInvis = createButton("Невидимость Скина: ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnInvis.MouseButton1Click:Connect(function()
+    ZH_States.invisibilityActive = not ZH_States.invisibilityActive
+    BtnInvis.Text = ZH_States.invisibilityActive and "Невидимость Скина: ВКЛ" or "Невидимость Скина: ВЫКЛ"
+    BtnInvis.BackgroundColor3 = ZH_States.invisibilityActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+-- 3. Создаем кнопку Скрытия Оружия (для всех игроков в лобби)
+local BtnHideWeapon = createButton("Скрывать Оружие: ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnHideWeapon.MouseButton1Click:Connect(function()
+    ZH_States.hideWeaponActive = not ZH_States.hideWeaponActive
+    BtnHideWeapon.Text = ZH_States.hideWeaponActive and "Скрывать Оружие: ВКЛ" or "Скрывать Оружие: ВЫКЛ"
+    BtnHideWeapon.BackgroundColor3 = ZH_States.hideWeaponActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+
+-- ==================== СИСТЕМНАЯ ЛОГИКА НОВЫХ ФУНКЦИЙ ====================
+
+-- Фоновый поток для нового ПЛАВНОГО автофарма (персонаж сам летит/идет к монетам)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        
+        if ZH_States and ZH_States.farmActive and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local myRoot = localPlayer.Character.HumanoidRootPart
+            local coinContainers = {Workspace:FindFirstChild("NormalCoins"), Workspace:FindFirstChild("CoinContainer")}
+            local currentTarget = nil
+            local minDistance = math.huge
+            
+            -- Ищем ближайшую монету на карте
+            for _, container in ipairs(coinContainers) do
+                if container then
+                    for _, coin in ipairs(container:GetChildren()) do
+                        local p = coin:IsA("Model") and (coin:FindFirstChildOfClass("BasePart") or coin.PrimaryPart) or coin
+                        if p then
+                            local dist = (myRoot.Position - p.Position).Magnitude
+                            if dist < minDistance then
+                                minDistance = dist
+                                currentTarget = p
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- Если монета найдена, плавно двигаем персонажа к ней (обход античита)
+            if currentTarget and currentTarget.Parent then
+                local distance = (myRoot.Position - currentTarget.Position).Magnitude
+                local speed = 45 -- Оптимальная скорость перемещения без кика (в секунду)
+                local duration = distance / speed
+                
+                -- Отключаем гравитацию на время полета к монете, чтобы не падать
+                local hum = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then hum.PlatformStand = true end
+                
+                local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+                local tween = TweenService:Create(myRoot, tweenInfo, {CFrame = currentTarget.CFrame})
+                tween:Play()
+                
+                -- Ждем пока долетим или пока автофарм не выключат
+                local elapsed = 0
+                while elapsed < duration and ZH_States.farmActive and currentTarget.Parent do
+                    task.wait(0.1)
+                    elapsed = elapsed + 0.1
+                end
+                
+                tween:Cancel()
+                if hum then hum.PlatformStand = false end
+            end
+        end
+    end
+end)
+
+-- Фоновый поток для Невидимости твоего скина и Скрытия Оружия
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        
+        -- Логика Невидимости Скина
+        if localPlayer.Character then
+            for _, part in ipairs(localPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("Decal") then
+                    if part.Name ~= "HumanoidRootPart" then
+                        -- Если включено, делаем прозрачным, если выключено — возвращаем видимость
+                        part.Transparency = ZH_States.invisibilityActive and 1 or 0
+                    end
+                end
+            end
+        end
+        
+        -- Логика Полного скрытия Ножа и Пистолета в руке у себя (для остальных игроков)
+        if ZH_States and ZH_States.hideWeaponActive and localPlayer.Character then
+            -- Проверяем оружие в руке (внутри Character)
+            local weapon = localPlayer.Character:FindFirstChild("Knife") or localPlayer.Character:FindFirstChild("Gun")
+            if weapon then
+                for _, part in ipairs(weapon:GetDescendants()) do
+                    if part:IsA("BasePart") or part:IsA("MeshPart") then
+                        part.Transparency = 1 -- Полностью убираем видимость модели меча/песта у всех
+                    end
+                end
+            end
+        end
+        
+    end
+end)
