@@ -1,182 +1,288 @@
+-- ==================== КУСОК 1 (ЗАПУСТИТЬ ПЕРВЫМ) ====================
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
-local localPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+getgenv().localPlayer = Players.LocalPlayer
+
+if CoreGui:FindFirstChild("ZoykaHub") then CoreGui["ZoykaHub"]:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ZoykaHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
+
+getgenv().MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 250, 0, 310)
+MainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 9)
+MainCorner.Parent = MainFrame
+
+local Logo = Instance.new("TextLabel")
+Logo.Size = UDim2.new(1, 0, 0, 35)
+Logo.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
+Logo.Text = "  ZoykaHub v3 (MM2 Ultimate)"
+Logo.TextColor3 = Color3.fromRGB(255, 255, 255)
+Logo.Font = Enum.Font.SourceSansBold
+Logo.TextSize = 14
+Logo.TextXAlignment = Enum.TextXAlignment.Left
+Logo.BorderSizePixel = 0
+Logo.Parent = MainFrame
+
+Instance.new("UICorner", Logo).CornerRadius = UDim.new(0, 9)
+
+local CollapseButton = Instance.new("TextButton")
+CollapseButton.Size = UDim2.new(0, 30, 0, 35)
+CollapseButton.Position = UDim2.new(1, -35, 0, 0)
+CollapseButton.BackgroundTransparency = 1
+CollapseButton.Text = "_"
+CollapseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+CollapseButton.Font = Enum.Font.SourceSansBold
+CollapseButton.TextSize = 18
+CollapseButton.Parent = MainFrame
+
+local isCollapsed = false
+CollapseButton.MouseButton1Click:Connect(function()
+    isCollapsed = not isCollapsed
+    MainFrame.Size = isCollapsed and UDim2.new(0, 250, 0, 35) or UDim2.new(0, 250, 0, 310)
+    CollapseButton.Text = isCollapsed and "+" or "_"
+end)
+
+local dragging, dragInput, dragStart, startPos
+Logo.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+    end
+end)
+Logo.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+getgenv().ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -10, 1, -45)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 40)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 360)
+ScrollFrame.ScrollBarThickness = 3
+ScrollFrame.Parent = MainFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 6)
+ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ListLayout.Parent = ScrollFrame
+
+getgenv().createButton = function(text, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 220, 0, 35)
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 13
+    b.Parent = ScrollFrame
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    return b
+end
+
+getgenv().ZH_States = {playerTrans = 1, itemTrans = 1, speedActive = false, farmActive = false, aimActive = false, notifyActive = false}
+
+local BtnPlayers = createButton("ESP Ролей: ВЫКЛ", Color3.fromRGB(180, 40, 40))
+BtnPlayers.MouseButton1Click:Connect(function()
+    local t = ZH_States.playerTrans
+    ZH_States.playerTrans = t == 1 and 0 or t == 0 and 0.4 or t == 0.4 and 0.7 or 1
+    local nt = ZH_States.playerTrans
+    BtnPlayers.Text = nt == 1 and "ESP Ролей: ВЫКЛ" or "Роли: Видимость " .. math.round((1 - nt) * 100) .. "%"
+    BtnPlayers.BackgroundColor3 = nt == 1 and Color3.fromRGB(180, 40, 40) or Color3.fromRGB(40, 150, 70)
+end)
+-- ==================== КУСОК 2 (ЗАПУСТИТЬ ВТОРЫМ) ====================
+local BtnItems = createButton("ESP Предметов: ВЫКЛ", Color3.fromRGB(180, 40, 40))
+BtnItems.MouseButton1Click:Connect(function()
+    local t = ZH_States.itemTrans
+    ZH_States.itemTrans = t == 1 and 0 or t == 0 and 0.4 or t == 0.4 and 0.7 or 1
+    local nt = ZH_States.itemTrans
+    BtnItems.Text = nt == 1 and "ESP Предметов: ВЫКЛ" or "Предметы: Видимость " .. math.round((1 - nt) * 100) .. "%"
+    BtnItems.BackgroundColor3 = nt == 1 and Color3.fromRGB(180, 40, 40) or Color3.fromRGB(40, 150, 70)
+end)
+
+local BtnSpeed = createButton("Ускорение: ВЫКЛ (16)", Color3.fromRGB(40, 40, 45))
+local function updateSpeed()
+    local chr = localPlayer.Character
+    local hum = chr and chr:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = ZH_States.speedActive and 35 or 16 end
+end
+BtnSpeed.MouseButton1Click:Connect(function()
+    ZH_States.speedActive = not ZH_States.speedActive
+    BtnSpeed.Text = ZH_States.speedActive and "Ускорение: ВКЛ (35)" or "Ускорение: ВЫКЛ (16)"
+    BtnSpeed.BackgroundColor3 = ZH_States.speedActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+    updateSpeed()
+end)
+localPlayer.CharacterAdded:Connect(function() task.wait(1) updateSpeed() end)
+
+local BtnFarm = createButton("Авто-Фарм Монет: ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnFarm.MouseButton1Click:Connect(function()
+    ZH_States.farmActive = not ZH_States.farmActive
+    BtnFarm.Text = ZH_States.farmActive and "Авто-Фарм Монет: ВКЛ" or "Авто-Фарм Монет: ВЫКЛ"
+    BtnFarm.BackgroundColor3 = ZH_States.farmActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+local BtnSilent = createButton("Silent Aim (Шериф): ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnSilent.MouseButton1Click:Connect(function()
+    ZH_States.aimActive = not ZH_States.aimActive
+    BtnSilent.Text = ZH_States.aimActive and "Silent Aim: ВКЛ" or "Silent Aim (Шериф): ВЫКЛ"
+    BtnSilent.BackgroundColor3 = ZH_States.aimActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+local BtnNotify = createButton("Чат-Трекер Ролей: ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnNotify.MouseButton1Click:Connect(function()
+    ZH_States.notifyActive = not ZH_States.notifyActive
+    BtnNotify.Text = ZH_States.notifyActive and "Чат-Трекер Ролей: ВКЛ" or "Чат-Трекер Ролей: ВЫКЛ"
+    BtnNotify.BackgroundColor3 = ZH_States.notifyActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+-- ==================== КУСОК 3 (ЗАПУСТИТЬ ТРЕТЬИМ) ====================
+local Players = game:GetService("Players")
+
+getgenv().getZH_Role = function(p)
+    local bp = p:FindFirstChild("Backpack")
+    local char = p.Character
+    if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then return "Murder"
+    elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then return "Sheriff" end
+    return "Innocent"
+end
+
+local announced = {}
+task.spawn(function()
+    while task.wait(2) do
+        if ZH_States.notifyActive then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= localPlayer and p.Character then
+                    local r = getZH_Role(p)
+                    if r ~= "Innocent" and not announced[p.Name] then
+                        announced[p.Name] = true
+                        local isM = (r == "Murder")
+                        game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+                            Text = isM and "⚠️ ["..p.Name.."] — МАНЬЯК!" or "🛡️ ["..p.Name.."] — ШЕРИФ!",
+                            Color = isM and Color3.new(1,0,0) or Color3.new(0,0.5,1),
+                            Font = Enum.Font.SourceSansBold
+                        })
+                    end
+                end
+            end
+        else table.clear(announced) end
+    end
+end)
+
+local oldNc
+oldNc = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if ZH_States.aimActive and method == "FireServer" and tostring(self) == "ShootGun" then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if getZH_Role(p) == "Murder" and p.Character and p.Character:FindFirstChild("Head") then
+                args = p.Character.Head.Position
+                return oldNc(self, unpack(args))
+            end
+        end
+    end
+    return oldNc(self, ...)
+end)
+-- ==================== КУСОК 4 (ЗАПУСТИТЬ ЧЕТВЕРТЫМ) ====================
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
 task.spawn(function()
     while true do
-        task.wait(0.2) -- Задержка между проверками
-        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local coinContainers = {Workspace:FindFirstChild("NormalCoins"), Workspace:FindFirstChild("CoinContainer")}
-            local grabbed = false
-            
+        task.wait(0.2)
+        local coinContainers = {Workspace:FindFirstChild("NormalCoins"), Workspace:FindFirstChild("CoinContainer")}
+        
+        if ZH_States.farmActive and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
             for _, container in ipairs(coinContainers) do
                 if container and #container:GetChildren() > 0 then
                     for _, coin in ipairs(container:GetChildren()) do
-                        if coin:IsA("BasePart") or coin:IsA("Model") then
-                            local targetPart = coin:IsA("Model") and (coin:FindFirstChildOfClass("BasePart") or coin.PrimaryPart) or coin
-                            if targetPart then
-                                -- Телепортирует персонажа чуть ниже монеты для безопасного сбора
-                                localPlayer.Character.HumanoidRootPart.CFrame = targetPart.CFrame * CFrame.new(0, -2, 0)
-                                grabbed = true
-                                task.wait(0.15) -- Время на подбор монеты
-                                break
-                            end
+                        local target = coin:IsA("Model") and (coin:FindFirstChildOfClass("BasePart") or coin.PrimaryPart) or coin
+                        if target then
+                            localPlayer.Character.HumanoidRootPart.CFrame = target.CFrame * CFrame.new(0, -2, 0)
+                            task.wait(0.12)
+                            break
                         end
                     end
                 end
-                if grabbed then break end
             end
         end
-    end
-end)
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
 
-local function getPlayerRole(p)
-    local bp = p:FindFirstChild("Backpack")
-    local char = p.Character
-    if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
-        return "Murder"
-    elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then
-        return "Sheriff"
-    end
-    return "Innocent"
-end
-
-local trackedPlayers = {}
-task.spawn(function()
-    while task.wait(1.5) do
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= localPlayer and p.Character then
-                local role = getPlayerRole(p)
-                if role ~= "Innocent" and not trackedPlayers[p.Name] then
-                    trackedPlayers[p.Name] = true
-                    local isMurder = (role == "Murder")
-                    
-                    game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-                        Text = isMurder and "⚠️ ["..p.Name.."] — МАНЬЯК!" or "🛡️ ["..p.Name.."] — ШЕРИФ!",
-                        Color = isMurder and Color3.new(1, 0, 0) or Color3.new(0, 0.5, 1),
-                        Font = Enum.Font.SourceSansBold
-                    })
-                end
-            end
-        end
-        -- Очистка списка между раундами (когда маньяк пропадает)
-        local murderFound = false
-        for _, p in ipairs(Players:GetPlayers()) do
-            if getPlayerRole(p) == "Murder" then murderFound = true end
-        end
-        if not murderFound then table.clear(trackedPlayers) end
-    end
-end)
-local Players = game:GetService("Players")
-
-local function getMurderer()
-    for _, p in ipairs(Players:GetPlayers()) do
-        local bp = p:FindFirstChild("Backpack")
-        local char = p.Character
-        if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
-            return p
-        end
-    end
-    return nil
-end
-
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    
-    if method == "FireServer" and tostring(self) == "ShootGun" then
-        local target = getMurderer()
-        if target and target.Character and target.Character:FindFirstChild("Head") then
-            args[1] = target.Character.Head.Position -- Подмена координат выстрела
-            return oldNamecall(self, unpack(args))
-        end
-    end
-    return oldNamecall(self, ...)
-end)
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
-
-local function getPlayerRole(p)
-    local bp = p:FindFirstChild("Backpack")
-    local char = p.Character
-    if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
-        return "Murder"
-    elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then
-        return "Sheriff"
-    end
-    return "Innocent"
-end
-
-task.spawn(function()
-    while true do
-        task.wait(0.2)
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= localPlayer and p.Character then
                 local hl = p.Character:FindFirstChild("ZHL")
-                if not hl then
-                    hl = Instance.new("Highlight")
-                    hl.Name = "ZHL"
-                    hl.OutlineColor = Color3.new(1, 1, 1)
-                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    hl.Parent = p.Character
-                end
-                
-                hl.FillTransparency = 0.4 -- Прозрачность заливки (0 - яркая, 1 - невидимая)
-                
-                local role = getPlayerRole(p)
-                if role == "Murder" then 
-                    hl.FillColor = Color3.fromRGB(255, 0, 0)
-                elseif role == "Sheriff" then 
-                    hl.FillColor = Color3.fromRGB(0, 120, 255)
-                else 
-                    hl.FillColor = Color3.fromRGB(0, 255, 100) 
-                end
-            end
-        end
-    end
-end)
-local Workspace = game:GetService("Workspace")
-
-task.spawn(function()
-    while true do
-        task.wait(0.2)
-        
-        -- 1. Подсветка пистолета (GunDrop)
-        local gunDrop = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
-        if gunDrop then
-            local targetPart = gunDrop:IsA("BasePart") and gunDrop or gunDrop:FindFirstChildOfClass("MeshPart") or gunDrop:FindFirstChildOfClass("BasePart")
-            if targetPart then
-                local g = targetPart:FindFirstChild("ZI")
-                if not g then
-                    g = Instance.new("Highlight")
-                    g.Name = "ZI"
-                    g.OutlineColor = Color3.new(1, 1, 1)
-                    g.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    g.Parent = targetPart
-                end
-                g.FillColor = Color3.fromRGB(0, 255, 255) -- Бирюзовый цвет для оружия
-                g.FillTransparency = 0.3
+                if ZH_States.playerTrans < 1 then
+                    if not hl then
+                        hl = Instance.new("Highlight", p.Character)
+                        hl.Name = "ZHL"
+                        hl.OutlineColor = Color3.new(1, 1, 1)
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    end
+                    hl.FillTransparency = ZH_States.playerTrans
+                    local r = getZH_Role(p)
+                    hl.FillColor = r == "Murder" and Color3.new(1,0,0) or r == "Sheriff" and Color3.new(0,0.4,1) or Color3.new(0,1,0.4)
+                else if hl then hl:Destroy() end end
             end
         end
 
-        -- 2. Подсветка монет
-        local coinContainers = {Workspace:FindFirstChild("NormalCoins"), Workspace:FindFirstChild("CoinContainer")}
+        local gd = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
+        if gd then
+            local target = gd:IsA("BasePart") and gd or gd:FindFirstChildOfClass("MeshPart") or gd:FindFirstChildOfClass("BasePart")
+            if target then
+                local g = target:FindFirstChild("ZI")
+                if ZH_States.itemTrans < 1 then
+                    if not g then
+                        g = Instance.new("Highlight", target)
+                        g.Name = "ZI"
+                        g.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    end
+                    g.FillColor = Color3.fromRGB(0, 255, 255)
+                    g.FillTransparency = ZH_States.itemTrans
+                else if g then g:Destroy() end end
+            end
+        end
+
         for _, container in ipairs(coinContainers) do
             if container then
                 for _, c in ipairs(container:GetChildren()) do
                     local h = c:FindFirstChild("ZI")
-                    if not h then
-                        h = Instance.new("Highlight")
-                        h.Name = "ZI"
-                        h.OutlineColor = Color3.new(1, 1, 0)
-                        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                        h.Parent = c
+                    if ZH_States.itemTrans < 1 then
+                        if not h then
+                            h = Instance.new("Highlight", c)
+                            h.Name = "ZI"
+                            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        end
+                        h.FillColor = Color3.fromRGB(255, 215, 0)
+                        h.FillTransparency = ZH_States.itemTrans
+                    else if h then h:Destroy() end end
+                end
+            end
+        end
+
+        if ZH_States.itemTrans == 1 then
+            if gd then for _, ch in ipairs(gd:GetDescendants()) do if ch.Name == "ZI" then ch:Destroy() end end end
+            for _, container in ipairs(coinContainers) do
+                if container then
+                    for _, c in ipairs(container:GetChildren()) do
+                        local h = c:FindFirstChild("ZI") if h then h:Destroy() end
                     end
-                    h.FillColor = Color3.fromRGB(255, 215, 0) -- Золотой цвет для монет
-                    h.FillTransparency = 0.5
                 end
             end
         end
