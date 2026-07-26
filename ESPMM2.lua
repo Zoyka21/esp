@@ -1,268 +1,184 @@
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
 local localPlayer = Players.LocalPlayer
 
--- Удаление старой копии GUI, если она существовала (чтобы не дублировалось при перезапусках)
-local oldGui = CoreGui:FindFirstChild("ZoykaHub")
-if oldGui then oldGui:Destroy() end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ZoykaHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 240, 0, 200)
-MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
-
-local Logo = Instance.new("TextLabel")
-Logo.Size = UDim2.new(1, 0, 0, 35)
-Logo.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
-Logo.Text = "  ZoykaHub v1 (MM2)"
-Logo.TextColor3 = Color3.fromRGB(255, 255, 255)
-Logo.Font = Enum.Font.SourceSansBold
-Logo.TextSize = 14
-Logo.TextXAlignment = Enum.TextXAlignment.Left
-Logo.BorderSizePixel = 0
-Logo.Parent = MainFrame
-
-local CollapseButton = Instance.new("TextButton")
-CollapseButton.Size = UDim2.new(0, 30, 0, 35)
-CollapseButton.Position = UDim2.new(1, -35, 0, 0)
-CollapseButton.BackgroundTransparency = 1
-CollapseButton.Text = "_"
-CollapseButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-CollapseButton.Font = Enum.Font.SourceSansBold
-CollapseButton.TextSize = 18
-CollapseButton.Parent = MainFrame
-
-local isCollapsed = false
-CollapseButton.MouseButton1Click:Connect(function()
-    isCollapsed = not isCollapsed
-    if isCollapsed then
-        MainFrame.Size = UDim2.new(0, 240, 0, 35)
-        CollapseButton.Text = "+"
-    else
-        MainFrame.Size = UDim2.new(0, 240, 0, 200)
-        CollapseButton.Text = "_"
-    end
-end)
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 9)
-MainCorner.Parent = MainFrame
-
-local LogoCorner = Instance.new("UICorner")
-LogoCorner.CornerRadius = UDim.new(0, 9)
-LogoCorner.Parent = Logo
-
--- Плавный и стабильный Dragging (перетаскивание меню)
-local dragging, dragInput, dragStart, startPos
-Logo.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-Logo.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-local playerTrans = 1 
-local coinTrans = 1
-
-local BtnPlayers = Instance.new("TextButton")
-BtnPlayers.Size = UDim2.new(0, 200, 0, 35)
-BtnPlayers.Position = UDim2.new(0, 20, 0, 50)
-BtnPlayers.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-BtnPlayers.Text = "ESP Ролей: ВЫКЛ"
-BtnPlayers.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnPlayers.Font = Enum.Font.SourceSansBold
-BtnPlayers.TextSize = 13
-BtnPlayers.Parent = MainFrame
-Instance.new("UICorner", BtnPlayers).CornerRadius = UDim.new(0, 6)
-
-BtnPlayers.MouseButton1Click:Connect(function()
-    if playerTrans == 1 then playerTrans = 0
-    elseif playerTrans == 0 then playerTrans = 0.3
-    elseif playerTrans == 0.3 then playerTrans = 0.6
-    elseif playerTrans == 0.6 then playerTrans = 0.9
-    else playerTrans = 1 end
-    
-    if playerTrans == 1 then
-        BtnPlayers.Text = "ESP Ролей: ВЫКЛ"
-        BtnPlayers.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    else
-        BtnPlayers.Text = "Роли: Видимость " .. math.round((1 - playerTrans) * 100) .. "%"
-        BtnPlayers.BackgroundColor3 = Color3.fromRGB(40, 150, 70)
-    end
-end)
-
-local BtnItems = Instance.new("TextButton")
-BtnItems.Size = UDim2.new(0, 200, 0, 35)
-BtnItems.Position = UDim2.new(0, 20, 0, 95)
-BtnItems.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-BtnItems.Text = "ESP Предметов: ВЫКЛ"
-BtnItems.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnItems.Font = Enum.Font.SourceSansBold
-BtnItems.TextSize = 13
-BtnItems.Parent = MainFrame
-Instance.new("UICorner", BtnItems).CornerRadius = UDim.new(0, 6)
-
-BtnItems.MouseButton1Click:Connect(function()
-    if coinTrans == 1 then coinTrans = 0
-    elseif coinTrans == 0 then coinTrans = 0.3
-    elseif coinTrans == 0.3 then coinTrans = 0.6
-    elseif coinTrans == 0.6 then coinTrans = 0.9
-    else coinTrans = 1 end
-    
-    if coinTrans == 1 then
-        BtnItems.Text = "ESP Предметов: ВЫКЛ"
-        BtnItems.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    else
-        BtnItems.Text = "Предметы: Видимость " .. math.round((1 - coinTrans) * 100) .. "%"
-        BtnItems.BackgroundColor3 = Color3.fromRGB(40, 150, 70)
-    end
-end)
-
-local speedActive = false
-local BtnSpeed = Instance.new("TextButton")
-BtnSpeed.Size = UDim2.new(0, 200, 0, 35)
-BtnSpeed.Position = UDim2.new(0, 20, 0, 140)
-BtnSpeed.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-BtnSpeed.Text = "Ускорение: ВЫКЛ (16)"
-BtnSpeed.TextColor3 = Color3.fromRGB(255, 255, 255)
-BtnSpeed.Font = Enum.Font.SourceSansBold
-BtnSpeed.TextSize = 13
-BtnSpeed.Parent = MainFrame
-Instance.new("UICorner", BtnSpeed).CornerRadius = UDim.new(0, 6)
-
-local function updateSpeed()
-    local character = localPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if humanoid then humanoid.WalkSpeed = speedActive and 35 or 16 end
-end
-
-BtnSpeed.MouseButton1Click:Connect(function()
-    speedActive = not speedActive
-    BtnSpeed.Text = speedActive and "Ускорение: ВКЛ (35)" or "Ускорение: ВЫКЛ (16)"
-    BtnSpeed.BackgroundColor3 = speedActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
-    updateSpeed()
-end)
-
-localPlayer.CharacterAdded:Connect(function() task.wait(1) updateSpeed() end)
-
--- Главный цикл обработки ESP
 task.spawn(function()
     while true do
-        task.wait(0.2) -- Чуть быстрее обновление для отзывчивости
-        
-        -- 1. Отработка ESP Игроков (Ролей)
+        task.wait(0.2) -- Задержка между проверками
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local coinContainers = {Workspace:FindFirstChild("NormalCoins"), Workspace:FindFirstChild("CoinContainer")}
+            local grabbed = false
+            
+            for _, container in ipairs(coinContainers) do
+                if container and #container:GetChildren() > 0 then
+                    for _, coin in ipairs(container:GetChildren()) do
+                        if coin:IsA("BasePart") or coin:IsA("Model") then
+                            local targetPart = coin:IsA("Model") and (coin:FindFirstChildOfClass("BasePart") or coin.PrimaryPart) or coin
+                            if targetPart then
+                                -- Телепортирует персонажа чуть ниже монеты для безопасного сбора
+                                localPlayer.Character.HumanoidRootPart.CFrame = targetPart.CFrame * CFrame.new(0, -2, 0)
+                                grabbed = true
+                                task.wait(0.15) -- Время на подбор монеты
+                                break
+                            end
+                        end
+                    end
+                end
+                if grabbed then break end
+            end
+        end
+    end
+end)
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+
+local function getPlayerRole(p)
+    local bp = p:FindFirstChild("Backpack")
+    local char = p.Character
+    if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
+        return "Murder"
+    elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then
+        return "Sheriff"
+    end
+    return "Innocent"
+end
+
+local trackedPlayers = {}
+task.spawn(function()
+    while task.wait(1.5) do
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= localPlayer and p.Character then
-                local hl = p.Character:FindFirstChild("ZHL")
-                if playerTrans < 1 then
-                    if not hl then
-                        hl = Instance.new("Highlight")
-                        hl.Name = "ZHL"
-                        hl.OutlineColor = Color3.new(1, 1, 1)
-                        hl.OutlineTransparency = 0
-                        hl.Parent = p.Character
-                    end
-                    hl.FillTransparency = playerTrans
+                local role = getPlayerRole(p)
+                if role ~= "Innocent" and not trackedPlayers[p.Name] then
+                    trackedPlayers[p.Name] = true
+                    local isMurder = (role == "Murder")
                     
-                    local bp = p:FindFirstChild("Backpack")
-                    local char = p.Character
-                    local isMurder = (bp and bp:FindFirstChild("Knife")) or char:FindFirstChild("Knife")
-                    local isSheriff = (bp and bp:FindFirstChild("Gun")) or char:FindFirstChild("Gun")
-                    
-                    if isMurder then 
-                        hl.FillColor = Color3.fromRGB(255, 0, 0)
-                    elseif isSheriff then 
-                        hl.FillColor = Color3.fromRGB(0, 120, 255)
-                    else 
-                        hl.FillColor = Color3.fromRGB(0, 255, 100) 
-                    end
-                else
-                    if hl then hl:Destroy() end
+                    game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+                        Text = isMurder and "⚠️ ["..p.Name.."] — МАНЬЯК!" or "🛡️ ["..p.Name.."] — ШЕРИФ!",
+                        Color = isMurder and Color3.new(1, 0, 0) or Color3.new(0, 0.5, 1),
+                        Font = Enum.Font.SourceSansBold
+                    })
                 end
             end
         end
+        -- Очистка списка между раундами (когда маньяк пропадает)
+        local murderFound = false
+        for _, p in ipairs(Players:GetPlayers()) do
+            if getPlayerRole(p) == "Murder" then murderFound = true end
+        end
+        if not murderFound then table.clear(trackedPlayers) end
+    end
+end)
+local Players = game:GetService("Players")
+
+local function getMurderer()
+    for _, p in ipairs(Players:GetPlayers()) do
+        local bp = p:FindFirstChild("Backpack")
+        local char = p.Character
+        if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
+            return p
+        end
+    end
+    return nil
+end
+
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if method == "FireServer" and tostring(self) == "ShootGun" then
+        local target = getMurderer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            args[1] = target.Character.Head.Position -- Подмена координат выстрела
+            return oldNamecall(self, unpack(args))
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+
+local function getPlayerRole(p)
+    local bp = p:FindFirstChild("Backpack")
+    local char = p.Character
+    if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
+        return "Murder"
+    elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then
+        return "Sheriff"
+    end
+    return "Innocent"
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= localPlayer and p.Character then
+                local hl = p.Character:FindFirstChild("ZHL")
+                if not hl then
+                    hl = Instance.new("Highlight")
+                    hl.Name = "ZHL"
+                    hl.OutlineColor = Color3.new(1, 1, 1)
+                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    hl.Parent = p.Character
+                end
+                
+                hl.FillTransparency = 0.4 -- Прозрачность заливки (0 - яркая, 1 - невидимая)
+                
+                local role = getPlayerRole(p)
+                if role == "Murder" then 
+                    hl.FillColor = Color3.fromRGB(255, 0, 0)
+                elseif role == "Sheriff" then 
+                    hl.FillColor = Color3.fromRGB(0, 120, 255)
+                else 
+                    hl.FillColor = Color3.fromRGB(0, 255, 100) 
+                end
+            end
+        end
+    end
+end)
+local Workspace = game:GetService("Workspace")
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
         
-        -- 2. Отработка ESP Предметов (Дропнутый пистолет Шерифа)
-        local gd = Workspace:FindFirstChild("GunDrop")
-        if gd then
-            local g = gd:FindFirstChild("ZI")
-            if coinTrans < 1 then
+        -- 1. Подсветка пистолета (GunDrop)
+        local gunDrop = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
+        if gunDrop then
+            local targetPart = gunDrop:IsA("BasePart") and gunDrop or gunDrop:FindFirstChildOfClass("MeshPart") or gunDrop:FindFirstChildOfClass("BasePart")
+            if targetPart then
+                local g = targetPart:FindFirstChild("ZI")
                 if not g then
                     g = Instance.new("Highlight")
                     g.Name = "ZI"
                     g.OutlineColor = Color3.new(1, 1, 1)
-                    g.Parent = gd
+                    g.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    g.Parent = targetPart
                 end
-                g.FillColor = Color3.fromRGB(255, 0, 0) -- Пистолет подсветим ярким красным/золотым
-                g.FillTransparency = coinTrans
-            else
-                if g then g:Destroy() end
+                g.FillColor = Color3.fromRGB(0, 255, 255) -- Бирюзовый цвет для оружия
+                g.FillTransparency = 0.3
             end
         end
-        
-        -- 3. Отработка ESP Предметов (Монеты на карте)
-        -- MM2 может рендерить монеты в разных контейнерах в зависимости от карты. Проверяем все возможные:
+
+        -- 2. Подсветка монет
         local coinContainers = {Workspace:FindFirstChild("NormalCoins"), Workspace:FindFirstChild("CoinContainer")}
-        
         for _, container in ipairs(coinContainers) do
             if container then
                 for _, c in ipairs(container:GetChildren()) do
                     local h = c:FindFirstChild("ZI")
-                    if coinTrans < 1 then
-                        if not h then
-                            h = Instance.new("Highlight")
-                            h.Name = "ZI"
-                            h.OutlineColor = Color3.new(1, 1, 0)
-                            h.Parent = c
-                        end
-                        h.FillColor = Color3.fromRGB(255, 215, 0) -- Золотой цвет монет
-                        h.FillTransparency = coinTrans
-                    else
-                        if h then h:Destroy() end
+                    if not h then
+                        h = Instance.new("Highlight")
+                        h.Name = "ZI"
+                        h.OutlineColor = Color3.new(1, 1, 0)
+                        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        h.Parent = c
                     end
+                    h.FillColor = Color3.fromRGB(255, 215, 0) -- Золотой цвет для монет
+                    h.FillTransparency = 0.5
                 end
             end
         end
-
-        -- Очистка подсветки монет, если ESP предметов было выключено (на случай, если контейнеры изменились)
-        if coinTrans == 1 then
-            for _, container in ipairs(coinContainers) do
-                if container then
-                        for _, c in ipairs(container:GetChildren()) do
-                            local h = c:FindFirstChild("ZI")
-                            if h then h:Destroy() end
-                        end
-                    end
-                end
-                if gd then
-                    local g = gd:FindFirstChild("ZI")
-                    if g then g:Destroy() end
-                end
-            end
-        end
-    end)
+    end
+end)
