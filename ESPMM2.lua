@@ -288,3 +288,103 @@ task.spawn(function()
         end
     end
 end)
+-- ==================== КУСОК 5 (ЗАПУСТИТЬ ПЯТЫМ) ====================
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+-- Интегрируем новые настройки в глобальную таблицу состояний
+if ZH_States then
+    ZH_States.killAuraActive = false
+    ZH_States.killAuraRange = 50 -- Радиус по умолчанию
+end
+
+-- 1. Создаем кнопку включения/выключения Kill Aura
+local BtnAura = createButton("Kill Aura (Маньяк): ВЫКЛ", Color3.fromRGB(40, 40, 45))
+
+-- 2. Создаем контейнер для слайдера (регулятора радиуса)
+local SliderFrame = Instance.new("Frame")
+SliderFrame.Size = UDim2.new(0, 220, 0, 30)
+SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 33)
+SliderFrame.Parent = ScrollFrame
+Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 6)
+
+local SliderLabel = Instance.new("TextLabel")
+SliderLabel.Size = UDim2.new(1, 0, 1, 0)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Text = "Радиус атаки: 50"
+SliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+SliderLabel.Font = Enum.Font.SourceSansBold
+SliderLabel.TextSize = 12
+SliderLabel.Parent = SliderFrame
+
+-- Логика переключения кнопки Kill Aura
+BtnAura.MouseButton1Click:Connect(function()
+    ZH_States.killAuraActive = not ZH_States.killAuraActive
+    BtnAura.Text = ZH_States.killAuraActive and "Kill Aura: ВКЛ" or "Kill Aura (Маньяк): ВЫКЛ"
+    BtnAura.BackgroundColor3 = ZH_States.killAuraActive and Color3.fromRGB(150, 40, 40) or Color3.fromRGB(40, 40, 45)
+end)
+
+-- Простой клик/зажатие по слайдеру для регулировки радиуса от 0 до 150
+SliderFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local function updateSlider()
+            local mousePos = game:GetService("UserInputService"):GetMouseLocation().X
+            local frameLeft = SliderFrame.AbsolutePosition.X
+            local frameWidth = SliderFrame.AbsoluteSize.X
+            local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
+            
+            local newRange = math.round(percentage * 150) -- диапазон от 0 до 150
+            ZH_States.killAuraRange = newRange
+            SliderLabel.Text = "Радиус атаки: " .. newRange
+        end
+        updateSlider()
+        local moveCon
+        moveCon = game:GetService("UserInputService").InputChanged:Connect(function(moveInput)
+            if moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch then
+                updateSlider()
+            end
+        end)
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                if moveCon then moveCon:Disconnect() end
+            end
+        end)
+    end
+end)
+
+-- 3. Бесконечный цикл обработки Kill Aura
+task.spawn(function()
+    while true do
+        task.wait(0.1) -- Быстрая проверка дистанции для атаки
+        
+        -- Проверяем, включена ли функция, есть ли персонаж и держит ли он нож
+        if ZH_States and ZH_States.killAuraActive and localPlayer.Character then
+            local myRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local knife = localPlayer.Character:FindFirstChild("Knife") or (localPlayer:FindFirstChild("Backpack") and localPlayer.Backpack:FindFirstChild("Knife"))
+            
+            if myRoot and knife then
+                -- Автоматически берем нож в руку, если он в рюкзаке
+                if knife.Parent == localPlayer.Backpack then
+                    knife.Parent = localPlayer.Character
+                end
+                
+                -- Ищем цели вокруг
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= localPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local enemyRoot = p.Character.HumanoidRootPart
+                        local distance = (myRoot.Position - enemyRoot.Position).Magnitude
+                        
+                        -- Если игрок живой и вошел в радиус регулятора
+                        if distance <= ZH_States.killAuraRange and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                            -- Триггерим атаку ножа через вызов его серверного метода
+                            local stabServer = knife:FindFirstChild("Stab") or knife:FindFirstChildOfClass("RemoteEvent")
+                            if stabServer and stabServer:IsA("RemoteEvent") then
+                                stabServer:FireServer("Stab")
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
