@@ -513,4 +513,71 @@ task.spawn(function()
         end
         
     end
+    
+end)
+-- ==================== КУСОК 7 (ЗАПУСТИТЬ СЛЕДУЮЩИМ) ====================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- 1. Исправление прокрутки: увеличиваем CanvasSize до 550, чтобы влезли абсолютно все кнопки
+if getgenv().ScrollFrame then
+    getgenv().ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 550)
+end
+
+-- Добавляем состояние Anti-Fling в общую таблицу
+if ZH_States then
+    ZH_States.antiFlingActive = false
+end
+
+-- 2. Создаем кнопку для Anti-Fling в меню
+local BtnAntiFling = createButton("Anti-Fling (Защита): ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnAntiFling.MouseButton1Click:Connect(function()
+    ZH_States.antiFlingActive = not ZH_States.antiFlingActive
+    BtnAntiFling.Text = ZH_States.antiFlingActive and "Anti-Fling: ВКЛ" or "Anti-Fling (Защита): ВЫКЛ"
+    BtnAntiFling.BackgroundColor3 = ZH_States.antiFlingActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+-- 3. Системная логика Anti-Fling (из Infinite Yield)
+-- Скрипт отключает коллизию с другими игроками и обнуляет их угловую скорость рядом с тобой
+task.spawn(function()
+    while true do
+        RunService.Heartbeat:Wait()
+        
+        if ZH_States and ZH_States.antiFlingActive and localPlayer.Character then
+            local myChar = localPlayer.Character
+            
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= localPlayer and p.Character then
+                    local enemyChar = p.Character
+                    
+                    -- Отключаем физическое столкновение деталей персонажей
+                    for _, myPart in ipairs(myChar:GetDescendants()) do
+                        if myPart:IsA("BasePart") then
+                            for _, enemyPart in ipairs(enemyChar:GetDescendants()) do
+                                if enemyPart:IsA("BasePart") then
+                                    local cc = Instance.new("NoCollisionConstraint")
+                                    cc.Part0 = myPart
+                                    cc.Part1 = enemyPart
+                                    cc.Parent = myPart
+                                    -- Быстро удаляем, чтобы не засорять память, коллизия всё равно блокируется на тик
+                                    game:GetService("Debris"):AddItem(cc, 0.05)
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- Если чужой персонаж начинает бешено крутиться (Fling), обнуляем его скорость локально
+                    local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
+                    if enemyRoot then
+                        if enemyRoot.Velocity.Magnitude > 100 or enemyRoot.RotVelocity.Magnitude > 100 then
+                            enemyRoot.Velocity = Vector3.new(0, 0, 0)
+                            enemyRoot.RotVelocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                    
+                end
+            end
+        end
+    end
 end)
