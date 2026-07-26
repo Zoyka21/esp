@@ -1,249 +1,386 @@
 --[[
-    ESP для MM2 (Murder Mystery 2) - РАБОЧАЯ ВЕРСИЯ
-    Роли определяются по IntValue "Murderer" (значение > 0) или "Sheriff" (значение > 0)
+    ESP SYSTEM FOR MM2
+    Полноценная система ESP с плавающим окном
+    Поддержка всех типов ролей в MM2
 --]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local localPlayer = Players.LocalPlayer
+local lp = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 
--- ========== СОЗДАНИЕ GUI ==========
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ESP_GUI"
-screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+-- ========== НАСТРОЙКИ ==========
+local Settings = {
+    ESP = {
+        Enabled = false,
+        MurdererColor = Color3.fromRGB(255, 0, 0),
+        SheriffColor = Color3.fromRGB(0, 150, 255),
+        InnocentColor = Color3.fromRGB(0, 255, 100),
+        Transparency = 0.3,
+        TextSize = 14,
+        Distance = 150
+    }
+}
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 80)
-mainFrame.Position = UDim2.new(0.5, -80, 0.5, -40)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-mainFrame.BackgroundTransparency = 0.3
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true  -- Встроенная функция Roblox
-mainFrame.Selectable = true
-mainFrame.Parent = screenGui
-
--- Заголовок (для перетаскивания)
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 22)
-title.BackgroundTransparency = 1
-title.Text = "⚡ ESP Control"
-title.TextColor3 = Color3.fromRGB(200, 200, 200)
-title.TextSize = 13
-title.Font = Enum.Font.SourceSansBold
-title.Parent = mainFrame
-
--- Кнопка включения
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0.7, 0, 0, 28)
-toggleBtn.Position = UDim2.new(0.15, 0, 0.35, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleBtn.Text = "▶ ESP: OFF"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 13
-toggleBtn.Font = Enum.Font.SourceSans
-toggleBtn.Parent = mainFrame
-
--- Статус
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, 0, 0, 18)
-statusLabel.Position = UDim2.new(0, 0, 0.7, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "● Disabled"
-statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-statusLabel.TextSize = 11
-statusLabel.Font = Enum.Font.SourceSans
-statusLabel.Parent = mainFrame
-
--- ========== ESP ЛОГИКА ==========
-local espEnabled = false
-local espObjects = {}
-local refreshConnection
-
--- Правильное определение роли
-local function getRole(player)
-    local murderer = player:FindFirstChild("Murderer")
-    local sheriff = player:FindFirstChild("Sheriff")
+-- ========== GUI ==========
+local function CreateUI()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ESP_SYSTEM"
+    gui.Parent = lp:WaitForChild("PlayerGui")
     
-    if murderer and murderer:IsA("IntValue") and murderer.Value > 0 then
-        return "Murderer"
-    elseif sheriff and sheriff:IsA("IntValue") and sheriff.Value > 0 then
-        return "Sheriff"
-    else
-        return "Innocent"
-    end
+    -- Главное окно
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0, 200, 0, 120)
+    main.Position = UDim2.new(0.01, 0, 0.3, 0)
+    main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    main.BackgroundTransparency = 0.15
+    main.BorderSizePixel = 0
+    main.ClipsDescendants = true
+    main.Active = true
+    main.Draggable = true
+    main.Parent = gui
+    
+    -- Тень
+    local shadow = Instance.new("Frame")
+    shadow.Size = UDim2.new(1, 0, 1, 0)
+    shadow.Position = UDim2.new(0.005, 0, 0.005, 0)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.5
+    shadow.BorderSizePixel = 0
+    shadow.Parent = main
+    
+    -- Заголовок
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    title.BackgroundTransparency = 0.3
+    title.BorderSizePixel = 0
+    title.Text = "⚡ ESP SYSTEM"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 16
+    title.Font = Enum.Font.GothamBold
+    title.Parent = main
+    
+    -- Линия под заголовком
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(1, 0, 0, 1)
+    line.Position = UDim2.new(0, 0, 0, 30)
+    line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    line.BackgroundTransparency = 0.5
+    line.BorderSizePixel = 0
+    line.Parent = main
+    
+    -- Кнопка ESP
+    local espBtn = Instance.new("TextButton")
+    espBtn.Size = UDim2.new(0.85, 0, 0, 30)
+    espBtn.Position = UDim2.new(0.075, 0, 0.35, 0)
+    espBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    espBtn.BackgroundTransparency = 0.3
+    espBtn.BorderSizePixel = 0
+    espBtn.Text = "◄ ESP: OFF ►"
+    espBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    espBtn.TextSize = 13
+    espBtn.Font = Enum.Font.Gotham
+    espBtn.Parent = main
+    
+    -- Инфо
+    local info = Instance.new("TextLabel")
+    info.Size = UDim2.new(1, 0, 0, 20)
+    info.Position = UDim2.new(0, 0, 0.7, 0)
+    info.BackgroundTransparency = 1
+    info.Text = "Status: Disabled"
+    info.TextColor3 = Color3.fromRGB(150, 150, 150)
+    info.TextSize = 11
+    info.Font = Enum.Font.Gotham
+    info.Parent = main
+    
+    -- Счётчик
+    local counter = Instance.new("TextLabel")
+    counter.Size = UDim2.new(1, 0, 0, 20)
+    counter.Position = UDim2.new(0, 0, 0.85, 0)
+    counter.BackgroundTransparency = 1
+    counter.Text = "Players: 0"
+    counter.TextColor3 = Color3.fromRGB(100, 100, 100)
+    counter.TextSize = 10
+    counter.Font = Enum.Font.Gotham
+    counter.Parent = main
+    
+    return {
+        Main = main,
+        ESPBtn = espBtn,
+        Info = info,
+        Counter = counter
+    }
 end
 
--- Создание метки
-local function createESP(player)
-    if player == localPlayer or espObjects[player] then return end
+-- ========== ESP CORE ==========
+local ESP = {
+    Objects = {},
+    Connections = {},
+    UI = nil,
+    Enabled = false
+}
+
+function ESP:GetRole(player)
+    -- Проверяем все возможные варианты хранения ролей
+    local murder = player:FindFirstChild("Murderer")
+    local sheriff = player:FindFirstChild("Sheriff")
+    local role = player:FindFirstChild("Role")
+    
+    if murder then
+        if murder:IsA("BoolValue") and murder.Value then
+            return "Murderer"
+        elseif murder:IsA("IntValue") and murder.Value > 0 then
+            return "Murderer"
+        elseif murder:IsA("StringValue") and murder.Value == "Murderer" then
+            return "Murderer"
+        end
+    end
+    
+    if sheriff then
+        if sheriff:IsA("BoolValue") and sheriff.Value then
+            return "Sheriff"
+        elseif sheriff:IsA("IntValue") and sheriff.Value > 0 then
+            return "Sheriff"
+        elseif sheriff:IsA("StringValue") and sheriff.Value == "Sheriff" then
+            return "Sheriff"
+        end
+    end
+    
+    if role then
+        if role:IsA("StringValue") and role.Value == "Murderer" then
+            return "Murderer"
+        elseif role:IsA("StringValue") and role.Value == "Sheriff" then
+            return "Sheriff"
+        end
+    end
+    
+    return "Innocent"
+end
+
+function ESP:CreateESP(player)
+    if player == lp or self.Objects[player] then return end
+    
     local char = player.Character
     if not char then return end
+    
     local head = char:FindFirstChild("Head")
     if not head then return end
-
-    local role = getRole(player)
-    local color = role == "Murderer" and Color3.fromRGB(255, 60, 60)
-                or role == "Sheriff" and Color3.fromRGB(60, 120, 255)
-                or Color3.fromRGB(60, 255, 60)
-
-    -- Создаём BillboardGui
+    
+    local role = self:GetRole(player)
+    local color = role == "Murderer" and Settings.ESP.MurdererColor or
+                  role == "Sheriff" and Settings.ESP.SheriffColor or
+                  Settings.ESP.InnocentColor
+    
+    -- Billboard
     local bill = Instance.new("BillboardGui")
-    bill.Size = UDim2.new(0, 70, 0, 25)
+    bill.Size = UDim2.new(0, 100, 0, 32)
     bill.AlwaysOnTop = true
     bill.Adornee = head
     bill.Parent = head
-    bill.StudsOffset = Vector3.new(0, 1.5, 0)
-
+    bill.StudsOffset = Vector3.new(0, 2, 0)
+    bill.MaxDistance = Settings.ESP.Distance
+    
+    -- Фон
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 1, 0)
     frame.BackgroundColor3 = color
-    frame.BackgroundTransparency = 0.4  -- Полупрозрачный
+    frame.BackgroundTransparency = Settings.ESP.Transparency
     frame.BorderSizePixel = 0
     frame.Parent = bill
-
+    
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 4)
     corner.Parent = frame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = role
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextSize = 12
-    label.TextStrokeTransparency = 0.3
-    label.Font = Enum.Font.SourceSansBold
-    label.Parent = frame
-
-    espObjects[player] = bill
+    
+    -- Текст роли
+    local roleLabel = Instance.new("TextLabel")
+    roleLabel.Size = UDim2.new(1, 0, 0.6, 0)
+    roleLabel.Position = UDim2.new(0, 0, 0, 0)
+    roleLabel.BackgroundTransparency = 1
+    roleLabel.Text = role
+    roleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    roleLabel.TextSize = Settings.ESP.TextSize
+    roleLabel.Font = Enum.Font.GothamBold
+    roleLabel.TextStrokeTransparency = 0.2
+    roleLabel.Parent = frame
+    
+    -- Имя игрока
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
+    nameLabel.Position = UDim2.new(0, 0, 0.6, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    nameLabel.TextSize = 10
+    nameLabel.Font = Enum.Font.Gotham
+    nameLabel.TextStrokeTransparency = 0.3
+    nameLabel.Parent = frame
+    
+    -- Скелет (Box)
+    local box = Instance.new("BoxHandleAdornment")
+    box.Size = Vector3.new(2, 4.5, 1.5)
+    box.Position = Vector3.new(0, 1.5, 0)
+    box.Color3 = color
+    box.Transparency = 0.6
+    box.AlwaysOnTop = true
+    box.ZIndex = 0
+    box.Adornee = head
+    box.Parent = head
+    
+    self.Objects[player] = {
+        Billboard = bill,
+        Box = box
+    }
 end
 
--- Удаление метки
-local function removeESP(player)
-    local obj = espObjects[player]
+function ESP:RemoveESP(player)
+    local obj = self.Objects[player]
     if obj then
-        obj:Destroy()
-        espObjects[player] = nil
+        if obj.Billboard then obj.Billboard:Destroy() end
+        if obj.Box then obj.Box:Destroy() end
+        self.Objects[player] = nil
     end
 end
 
--- Обновление всех меток
-local function refreshESP()
-    for player, obj in pairs(espObjects) do
+function ESP:UpdateESP()
+    local players = Players:GetPlayers()
+    local count = 0
+    
+    -- Обновляем существующие
+    for player, obj in pairs(self.Objects) do
         local char = player.Character
-        if not char then
-            removeESP(player)
+        if not char or not char:FindFirstChild("Head") then
+            self:RemoveESP(player)
             continue
         end
         
-        local head = char:FindFirstChild("Head")
-        if not head then
-            removeESP(player)
-            continue
-        end
+        -- Обновляем роль
+        local role = self:GetRole(player)
+        local color = role == "Murderer" and Settings.ESP.MurdererColor or
+                      role == "Sheriff" and Settings.ESP.SheriffColor or
+                      Settings.ESP.InnocentColor
         
-        -- Обновляем привязку если голова изменилась
-        if obj.Adornee ~= head then
-            obj.Adornee = head
-        end
-
-        -- Обновляем цвет и текст
-        local role = getRole(player)
-        local color = role == "Murderer" and Color3.fromRGB(255, 60, 60)
-                    or role == "Sheriff" and Color3.fromRGB(60, 120, 255)
-                    or Color3.fromRGB(60, 255, 60)
-
-        local frame = obj:FindFirstChildWhichIsA("Frame")
-        if frame then
-            frame.BackgroundColor3 = color
-            local label = frame:FindFirstChildWhichIsA("TextLabel")
-            if label then
-                label.Text = role
+        if obj.Billboard then
+            local frame = obj.Billboard:FindFirstChildWhichIsA("Frame")
+            if frame then
+                frame.BackgroundColor3 = color
+                local roleLabel = frame:FindFirstChildWhichIsA("TextLabel")
+                if roleLabel then
+                    roleLabel.Text = role
+                end
             end
         end
-    end
-
-    -- Добавляем новых игроков
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= localPlayer and not espObjects[plr] then
-            createESP(plr)
+        
+        if obj.Box then
+            obj.Box.Color3 = color
         end
+        
+        count = count + 1
+    end
+    
+    -- Добавляем новых
+    for _, player in ipairs(players) do
+        if player ~= lp and not self.Objects[player] then
+            self:CreateESP(player)
+            count = count + 1
+        end
+    end
+    
+    -- Обновляем счётчик
+    if self.UI and self.UI.Counter then
+        self.UI.Counter.Text = "Players: " .. count
     end
 end
 
--- Включение ESP
-local function enableESP()
-    if espEnabled then return end
-    espEnabled = true
-    toggleBtn.Text = "⏹ ESP: ON"
-    statusLabel.Text = "● Enabled"
-    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+function ESP:Toggle()
+    self.Enabled = not self.Enabled
+    
+    if self.Enabled then
+        self:Enable()
+    else
+        self:Disable()
+    end
+end
 
-    -- Создаём метки для всех
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= localPlayer then
-            createESP(plr)
+function ESP:Enable()
+    self.Enabled = true
+    
+    if self.UI then
+        self.UI.ESPBtn.Text = "◄ ESP: ON ►"
+        self.UI.ESPBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+        self.UI.Info.Text = "Status: Enabled"
+        self.UI.Info.TextColor3 = Color3.fromRGB(0, 255, 100)
+    end
+    
+    -- Создаём ESP для всех
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= lp then
+            self:CreateESP(player)
         end
     end
-
-    -- Подписка на события
-    Players.PlayerAdded:Connect(function(plr)
-        if espEnabled and plr ~= localPlayer then
-            createESP(plr)
+    
+    -- Подключаем события
+    self.Connections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
+        if self.Enabled and player ~= lp then
+            self:CreateESP(player)
         end
     end)
     
-    Players.PlayerRemoving:Connect(function(plr)
-        if espEnabled then
-            removeESP(plr)
+    self.Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
+        if self.Enabled then
+            self:RemoveESP(player)
         end
     end)
-
-    -- Обновление каждые 0.3 секунды (быстрее реакция)
-    if refreshConnection then refreshConnection:Disconnect() end
-    refreshConnection = RunService.Heartbeat:Connect(function()
-        if espEnabled then
-            refreshESP()
+    
+    -- Цикл обновления
+    self.Connections.Heartbeat = RunService.Heartbeat:Connect(function()
+        if self.Enabled then
+            self:UpdateESP()
         end
     end)
 end
 
--- Выключение ESP
-local function disableESP()
-    if not espEnabled then return end
-    espEnabled = false
-    toggleBtn.Text = "▶ ESP: OFF"
-    statusLabel.Text = "● Disabled"
-    statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-
-    if refreshConnection then
-        refreshConnection:Disconnect()
-        refreshConnection = nil
+function ESP:Disable()
+    self.Enabled = false
+    
+    if self.UI then
+        self.UI.ESPBtn.Text = "◄ ESP: OFF ►"
+        self.UI.ESPBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        self.UI.Info.Text = "Status: Disabled"
+        self.UI.Info.TextColor3 = Color3.fromRGB(150, 150, 150)
+        self.UI.Counter.Text = "Players: 0"
     end
-
-    for _, obj in pairs(espObjects) do
-        obj:Destroy()
+    
+    -- Отключаем события
+    for _, conn in pairs(self.Connections) do
+        if conn then
+            conn:Disconnect()
+        end
     end
-    espObjects = {}
+    self.Connections = {}
+    
+    -- Удаляем все объекты
+    for player in pairs(self.Objects) do
+        self:RemoveESP(player)
+    end
 end
 
--- Кнопка переключения
-toggleBtn.MouseButton1Click:Connect(function()
-    if espEnabled then 
-        disableESP() 
-    else 
-        enableESP() 
-    end
+-- ========== ИНИЦИАЛИЗАЦИЯ ==========
+print("Loading ESP System...")
+
+-- Создаём UI
+ESP.UI = CreateUI()
+
+-- Настройка кнопки
+ESP.UI.ESPBtn.MouseButton1Click:Connect(function()
+    ESP:Toggle()
 end)
 
--- Очистка при выходе
-localPlayer:WaitForChild("PlayerGui").ChildRemoved:Connect(function()
-    disableESP()
+-- Чистка при выходе
+lp:WaitForChild("PlayerGui").ChildRemoved:Connect(function()
+    ESP:Disable()
 end)
 
--- По умолчанию выключено
-disableESP()
-
-print("ESP скрипт загружен! Нажмите кнопку в окне для включения.")
+print("ESP System loaded! Press the button to enable.")
