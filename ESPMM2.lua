@@ -126,7 +126,7 @@ task.spawn(function()
         else
             local gd = Workspace:FindFirstChild("GunDrop")
             if gd and gd:FindFirstChild("ZI") then gd.ZI:Destroy() end
-            local nc = Workspace:Workspace:FindFirstChild("NormalCoins")
+            local nc = Workspace:FindFirstChild("NormalCoins")
             if nc then
                 for _, c in ipairs(nc:GetChildren()) do
                     if c:FindFirstChild("ZI") then c.ZI:Destroy() end
