@@ -11,7 +11,7 @@ ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 350, 0, 200)
+MainFrame.Size = UDim2.new(0, 240, 0, 200) -- Ширина уменьшена до 240
 MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
 MainFrame.BorderSizePixel = 0
@@ -25,12 +25,11 @@ Logo.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
 Logo.Text = "  ZoykaHub v1 (MM2)"
 Logo.TextColor3 = Color3.fromRGB(255, 255, 255)
 Logo.Font = Enum.Font.SourceSansBold
-Logo.TextSize = 16
+Logo.TextSize = 14 -- Чуть меньше шрифт под узкое окно
 Logo.TextXAlignment = Enum.TextXAlignment.Left
 Logo.BorderSizePixel = 0
 Logo.Parent = MainFrame
 
--- Кнопка Свернуть/Развернуть в заголовке
 local CollapseButton = Instance.new("TextButton")
 CollapseButton.Size = UDim2.new(0, 30, 0, 35)
 CollapseButton.Position = UDim2.new(1, -35, 0, 0)
@@ -45,10 +44,10 @@ local isCollapsed = false
 CollapseButton.MouseButton1Click:Connect(function()
     isCollapsed = not isCollapsed
     if isCollapsed then
-        MainFrame.Size = UDim2.new(0, 350, 0, 35)
+        MainFrame.Size = UDim2.new(0, 240, 0, 35)
         CollapseButton.Text = "+"
     else
-        MainFrame.Size = UDim2.new(0, 350, 0, 200)
+        MainFrame.Size = UDim2.new(0, 240, 0, 200)
         CollapseButton.Text = "_"
     end
 end)
@@ -82,18 +81,17 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Переменные прозрачности (1 = выключено, 0 = полная видимость)
 local playerTrans = 1 
 local coinTrans = 1
 
--- Регулятор видимости игроков
 local BtnPlayers = Instance.new("TextButton")
-BtnPlayers.Size = UDim2.new(0, 310, 0, 35)
+BtnPlayers.Size = UDim2.new(0, 200, 0, 35) -- Кнопки сужены под размер окна
 BtnPlayers.Position = UDim2.new(0, 20, 0, 50)
 BtnPlayers.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 BtnPlayers.Text = "ESP Ролей: ВЫКЛ"
 BtnPlayers.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnPlayers.Font = Enum.Font.SourceSansBold
+BtnPlayers.TextSize = 13
 BtnPlayers.Parent = MainFrame
 Instance.new("UICorner", BtnPlayers).CornerRadius = UDim.new(0, 6)
 
@@ -108,19 +106,19 @@ BtnPlayers.MouseButton1Click:Connect(function()
         BtnPlayers.Text = "ESP Ролей: ВЫКЛ"
         BtnPlayers.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
     else
-        BtnPlayers.Text = "ESP Ролей: Видимость " .. math.round((1 - playerTrans) * 100) .. "%"
+        BtnPlayers.Text = "Роли: Видимость " .. math.round((1 - playerTrans) * 100) .. "%"
         BtnPlayers.BackgroundColor3 = Color3.fromRGB(40, 150, 70)
     end
 end)
 
--- Регулятор видимости монет и оружия
 local BtnItems = Instance.new("TextButton")
-BtnItems.Size = UDim2.new(0, 310, 0, 35)
+BtnItems.Size = UDim2.new(0, 200, 0, 35)
 BtnItems.Position = UDim2.new(0, 20, 0, 95)
 BtnItems.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 BtnItems.Text = "ESP Предметов: ВЫКЛ"
 BtnItems.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnItems.Font = Enum.Font.SourceSansBold
+BtnItems.TextSize = 13
 BtnItems.Parent = MainFrame
 Instance.new("UICorner", BtnItems).CornerRadius = UDim.new(0, 6)
 
@@ -135,20 +133,20 @@ BtnItems.MouseButton1Click:Connect(function()
         BtnItems.Text = "ESP Предметов: ВЫКЛ"
         BtnItems.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
     else
-        BtnItems.Text = "ESP Предметов: Видимость " .. math.round((1 - coinTrans) * 100) .. "%"
+        BtnItems.Text = "Предметы: Видимость " .. math.round((1 - coinTrans) * 100) .. "%"
         BtnItems.BackgroundColor3 = Color3.fromRGB(40, 150, 70)
     end
 end)
 
--- Кнопка скорости
 local speedActive = false
 local BtnSpeed = Instance.new("TextButton")
-BtnSpeed.Size = UDim2.new(0, 310, 0, 35)
+BtnSpeed.Size = UDim2.new(0, 200, 0, 35)
 BtnSpeed.Position = UDim2.new(0, 20, 0, 140)
 BtnSpeed.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 BtnSpeed.Text = "Ускорение: ВЫКЛ (16)"
 BtnSpeed.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnSpeed.Font = Enum.Font.SourceSansBold
+BtnSpeed.TextSize = 13
 BtnSpeed.Parent = MainFrame
 Instance.new("UICorner", BtnSpeed).CornerRadius = UDim.new(0, 6)
 
@@ -167,11 +165,9 @@ end)
 
 localPlayer.CharacterAdded:Connect(function() task.wait(1) updateSpeed() end)
 
--- Стабильный цикл обновлений ESP эффектов сквозь стены
 task.spawn(function()
     while true do
         task.wait(0.3)
-        
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= localPlayer and p.Character then
                 local hl = p.Character:FindFirstChild("ZHL")
@@ -195,7 +191,6 @@ task.spawn(function()
                 end
             end
         end
-        
         if coinTrans < 1 then
             local gd = Workspace:FindFirstChild("GunDrop")
             if gd then
