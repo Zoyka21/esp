@@ -581,3 +581,57 @@ task.spawn(function()
         end
     end
 end)
+-- ==================== ОПТИМИЗИРОВАННЫЙ КУСОК 7 ====================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- 1. Исправляем прокрутку (CanvasSize), чтобы ничего не утонуло
+if getgenv().ScrollFrame then
+    getgenv().ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 550)
+end
+
+if ZH_States then
+    ZH_States.antiFlingActive = false
+end
+
+-- 2. Создаем кнопку Anti-Fling
+local BtnAntiFling = createButton("Anti-Fling (Защита): ВЫКЛ", Color3.fromRGB(40, 40, 45))
+BtnAntiFling.MouseButton1Click:Connect(function()
+    ZH_States.antiFlingActive = not ZH_States.antiFlingActive
+    BtnAntiFling.Text = ZH_States.antiFlingActive and "Anti-Fling: ВКЛ" or "Anti-Fling (Защита): ВЫКЛ"
+    BtnAntiFling.BackgroundColor3 = ZH_States.antiFlingActive and Color3.fromRGB(40, 150, 70) or Color3.fromRGB(40, 40, 45)
+end)
+
+-- 3. СВЕРХОПТИМИЗИРОВАННАЯ логика Anti-Fling
+-- Используем одну встроенную функцию Roblox вместо миллионов циклов в секунду
+RunService.Stepped:Connect(function()
+    if ZH_States and ZH_States.antiFlingActive and localPlayer.Character then
+        -- Отключаем коллизию только для главных частей, этого достаточно для защиты от флинга
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= localPlayer and p.Character then
+                local myRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local enemyRoot = p.Character:FindFirstChild("HumanoidRootPart")
+                
+                if myRoot and enemyRoot then
+                    -- Если читер подлетает слишком близко и бешено крутится
+                    if (myRoot.Position - enemyRoot.Position).Magnitude < 15 then
+                        if enemyRoot.Velocity.Magnitude > 50 or enemyRoot.RotVelocity.Magnitude > 50 then
+                            -- Локально «замораживаем» его физику, чтобы он не мог тебя толкнуть
+                            enemyRoot.CanCollide = false
+                            enemyRoot.Velocity = Vector3.new(0, 0, 0)
+                            enemyRoot.RotVelocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
+                
+                -- Отключаем коллизию одежды/аксессуаров читера, чтобы они не застряли в тебе
+                for _, part in ipairs(p.Character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end
+    end
+end)
